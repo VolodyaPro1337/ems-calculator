@@ -21,7 +21,9 @@ import {
   Check,
   Cloud,
   Loader2,
-  LogOut
+  LogOut,
+  Moon,
+  Sun
 } from 'lucide-vue-next'
 
 // --- Firebase Config ---
@@ -53,6 +55,36 @@ const syncRoomId = ref('')
 const isSyncing = ref(false)
 const isRemoteUpdate = ref(false)
 const databaseRef = ref(null)
+
+// Shift Logic
+const currentShift = ref('day') // 'day' | 'night'
+const shiftLabel = computed(() => currentShift.value === 'day' ? 'Дневная смена' : 'Ночная смена')
+
+const updateShiftStatus = () => {
+  const now = new Date()
+  const day = now.getDay() // 0 = Sun, 6 = Sat
+  const hour = now.getHours()
+  
+  // Weekday: Mon(1) - Fri(5)
+  // Weekend: Sat(6), Sun(0)
+  const isWeekend = day === 0 || day === 6
+  
+  if (isWeekend) {
+    // Weekend Day: 12:00 - 20:00
+    if (hour >= 12 && hour < 20) {
+      currentShift.value = 'day'
+    } else {
+      currentShift.value = 'night'
+    }
+  } else {
+    // Weekday Day: 10:00 - 20:00
+    if (hour >= 10 && hour < 20) {
+      currentShift.value = 'day'
+    } else {
+      currentShift.value = 'night'
+    }
+  }
+}
 
 const categories = ref([
   {
@@ -167,7 +199,9 @@ const iconComponents = {
   Check,
   Cloud,
   Loader2,
-  LogOut
+  LogOut,
+  Moon,
+  Sun
 }
 
 const getSubtotal = (item) => {
@@ -413,7 +447,37 @@ onMounted(() => {
   if (savedRoom) {
      connectToSync(savedRoom)
   }
+  
+  // Init Shift Logic & Interval
+  updateShiftStatus()
+  setInterval(updateShiftStatus, 60000) // update every minute
 })
+
+const downloadShareXConfig = () => {
+  if (!syncRoomId.value) return
+  
+  const config = {
+    "Version": "13.6.1",
+    "Name": "EMS PMP Auto",
+    "DestinationType": "URLShortener",
+    "RequestMethod": "GET",
+    "RequestURL": `${window.location.origin}/api/sharex`,
+    "Parameters": {
+      "room": syncRoomId.value,
+      "action": "pmp"
+    }
+  }
+  
+  const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `EMS_PMP_${syncRoomId.value}.sxcu`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
 </script>
 
 <template>
@@ -448,6 +512,15 @@ onMounted(() => {
                
                <button @click="connectToSync(syncRoomId)" :disabled="!syncRoomId" class="w-full py-3 bg-indigo-500 hover:bg-indigo-600 rounded-xl text-white font-bold transition-colors shadow-lg shadow-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed">
                  Подключиться
+               </button>
+
+               <button 
+                 v-if="isSyncing" 
+                 @click="downloadShareXConfig" 
+                 class="w-full py-3 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-xl font-bold transition-colors flex items-center justify-center gap-2"
+               >
+                 <Cloud class="w-4 h-4" />
+                 Скачать конфиг ShareX
                </button>
 
                <div class="relative py-2">
@@ -537,9 +610,18 @@ onMounted(() => {
          </h1>
          <div class="h-1 w-16 bg-indigo-500/50 rounded-full mx-auto"></div>
          
-         <!-- Sync Status Indicator Below Header -->
-         <div v-if="isSyncing" class="mt-2 flex justify-center">
-            <div class="px-3 py-1 bg-indigo-500/10 rounded-full border border-indigo-500/20 flex items-center gap-2">
+         <!-- Shift & Sync Status -->
+         <div class="mt-4 flex flex-col items-center gap-2">
+            <!-- Shift Badge -->
+            <div class="px-4 py-1.5 rounded-full border flex items-center gap-2 shadow-lg backdrop-blur-md transition-all duration-500"
+                 :class="currentShift === 'day' ? 'bg-amber-500/10 border-amber-500/30 text-amber-400' : 'bg-indigo-900/40 border-indigo-500/30 text-indigo-300'">
+               <Sun v-if="currentShift === 'day'" class="w-4 h-4 animate-[spin_10s_linear_infinite]" />
+               <Moon v-else class="w-4 h-4" />
+               <span class="text-xs font-bold">{{ shiftLabel }}</span>
+            </div>
+
+            <!-- Sync Badge -->
+            <div v-if="isSyncing" class="px-3 py-1 bg-indigo-500/10 rounded-full border border-indigo-500/20 flex items-center gap-2">
                <div class="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></div>
                <span class="text-xs text-indigo-300 font-medium">Синхронизация активна</span>
                <button @click="disconnectSync" class="ml-1 text-slate-500 hover:text-white">
