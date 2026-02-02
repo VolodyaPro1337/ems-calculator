@@ -461,9 +461,6 @@ const downloadShareXConfig = () => {
   const config = {
     "Version": "13.6.1",
     "Name": `EMS Auto (${sharexAction.value.toUpperCase()})`,
-  const config = {
-    "Version": "13.6.1",
-    "Name": `EMS Auto (${sharexAction.value.toUpperCase()})`,
     "DestinationType": "ImageUploader",
     "RequestMethod": "POST",
     "RequestURL": `${window.location.origin}/api/sharex`,
