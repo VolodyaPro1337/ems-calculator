@@ -116,7 +116,13 @@ export default async function handler(req, res) {
         if (catIndex === -1) return res.status(500).json({ error: `Category '${targetCatId}' not found` });
 
         const itemIndex = categories[catIndex].items.findIndex(i => i.name === targetItemName);
-        if (itemIndex === -1) return res.status(500).json({ error: 'Item not found' });
+        if (itemIndex === -1) {
+            return res.status(500).json({
+                error: 'Item not found',
+                target: targetItemName,
+                available: categories[catIndex].items.map(i => i.name)
+            });
+        }
 
         // C. Increment
         const currentQty = categories[catIndex].items[itemIndex].quantity || 0;
