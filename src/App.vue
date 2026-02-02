@@ -338,8 +338,16 @@ const generateRoomId = () => {
   return Math.random().toString(36).substring(2, 8).toUpperCase()
 }
 
+const unsubscribeSync = ref(null)
+
 const connectToSync = async (roomId) => {
   if (!roomId) return
+  
+  // Clean up previous listener if any
+  if (unsubscribeSync.value) {
+    unsubscribeSync.value()
+    unsubscribeSync.value = null
+  }
   
   isSyncing.value = true
   syncRoomId.value = roomId.toUpperCase().trim()
@@ -350,7 +358,7 @@ const connectToSync = async (roomId) => {
   databaseRef.value = roomRef
 
   // Listen for changes
-  onValue(roomRef, (snapshot) => {
+  unsubscribeSync.value = onValue(roomRef, (snapshot) => {
     const data = snapshot.val()
     if (data) {
       isRemoteUpdate.value = true
@@ -378,9 +386,11 @@ const connectToSync = async (roomId) => {
 }
 
 const disconnectSync = () => {
-  // Just clear the ref and local state. Firebase keeps connection but we stop updating
-  // In a real app we might want to `off()` listener, but onValue handles it if we drop ref usually,
-  // or specific unsubscribe. For simplicity here:
+  if (unsubscribeSync.value) {
+    unsubscribeSync.value()
+    unsubscribeSync.value = null
+  }
+  
   isRemoteUpdate.value = true // block outgoing updates
   databaseRef.value = null
   isSyncing.value = false
