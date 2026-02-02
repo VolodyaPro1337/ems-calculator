@@ -94,10 +94,11 @@ export default async function handler(req, res) {
 
     // 3. Firebase Interaction (REST API)
     // We need to fetch the room data to find the index of the item to increment
-    const dbUrl = process.env.VITE_FIREBASE_DATABASE_URL; // Vercel Env Vars should have this
+    const dbUrl = process.env.VITE_FIREBASE_DATABASE_URL;
 
     if (!dbUrl) {
-        return res.status(500).json({ error: 'Server config error (DB URL)' });
+        console.error("Missing VITE_FIREBASE_DATABASE_URL");
+        return res.status(500).json({ error: 'System Error: ENV VITE_FIREBASE_DATABASE_URL is missing. Check Vercel Settings.' });
     }
 
     try {
