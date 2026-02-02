@@ -461,13 +461,15 @@ const downloadShareXConfig = () => {
   const config = {
     "Version": "13.6.1",
     "Name": `EMS Auto (${sharexAction.value.toUpperCase()})`,
-    "DestinationType": "URLShortener",
-    "RequestMethod": "GET",
+    "DestinationType": "ImageUploader",
+    "RequestMethod": "POST",
     "RequestURL": `${window.location.origin}/api/sharex`,
-    "Parameters": {
+    "Body": "MultipartFormData",
+    "Arguments": {
       "room": syncRoomId.value,
       "action": sharexAction.value
-    }
+    },
+    "URL": "$json:message$"
   }
   
   const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' })
