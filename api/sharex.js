@@ -64,32 +64,37 @@ export default async function handler(req, res) {
 
     const shiftStatus = isDay ? 'День' : 'Ночь';
 
-    // Action Map
-    let targetCatId = '';
-    let targetItemName = '';
+    // Action Map with Indices (Robust)
+    // We assume default location is ELSH (City) for now, as per config.
+    // Indexes based on App.vue structure:
+    // General: 0 = ELSH Day, 1 = ELSH Night
+    // PMP: 0 = PMP Day, 1 = PMP Night
 
-    // Simplified Location Logic (Defaults to ELSH/City)
-    const location = 'ELSH';
+    let targetCatId = '';
+    let targetItemIndex = -1;
+
+    // Helper for City/ELSH index
+    const cityIndex = isDay ? 0 : 1;
 
     switch (action) {
         case 'pmp':
             targetCatId = 'firstaid';
-            targetItemName = `Оказание ПМП ${shiftStatus}`;
+            targetItemIndex = isDay ? 0 : 1;
             break;
         case 'pills':
             targetCatId = 'pills';
-            targetItemName = `Выдача таблетки в ${location} ${shiftStatus}`;
+            targetItemIndex = cityIndex;
             break;
         case 'vaccine':
             targetCatId = 'vaccination';
-            targetItemName = `Вакцинация в ${location} ${shiftStatus}`;
+            targetItemIndex = cityIndex;
             break;
         case 'medcert':
             targetCatId = 'certificates';
-            targetItemName = `Выдача 1 мед. справки в ${location} ${shiftStatus}`;
+            targetItemIndex = cityIndex;
             break;
         default:
-            return res.status(400).json({ error: 'Unknown action. Use: pmp, pills, vaccine, medcert' });
+            return res.status(400).json({ error: 'Unknown action', action });
     }
 
     // 3. Firebase Interaction (REST API)
@@ -111,25 +116,27 @@ export default async function handler(req, res) {
             return res.status(404).json({ error: 'Room not found' });
         }
 
-        // B. Find Item Indices
         const catIndex = categories.findIndex(c => c.id === targetCatId);
-        if (catIndex === -1) return res.status(500).json({ error: `Category '${targetCatId}' not found` });
+        if (catIndex === -1) return res.status(500).json({ error: `Category '${targetCatId}' not found in DB` });
 
-        const itemIndex = categories[catIndex].items.findIndex(i => i.name === targetItemName);
-        if (itemIndex === -1) {
+        // Direct Index Access
+        if (!categories[catIndex].items[targetItemIndex]) {
             return res.status(500).json({
-                error: 'Item not found',
-                target: targetItemName,
-                available: categories[catIndex].items.map(i => i.name)
+                error: 'Target item index out of bounds',
+                catId: targetCatId,
+                index: targetItemIndex,
+                count: categories[catIndex].items.length
             });
         }
 
-        // C. Increment
-        const currentQty = categories[catIndex].items[itemIndex].quantity || 0;
+        const currentQty = categories[catIndex].items[targetItemIndex].quantity || 0;
         const newQty = currentQty + 1;
 
+        // Target Name for response (optional, try to get from DB or fallback)
+        const targetName = categories[catIndex].items[targetItemIndex].name || `${targetCatId} #${targetItemIndex}`;
+
         // D. Write back ONLY the quantity
-        const updateUrl = `${dbUrl}/rooms/${room}/${catIndex}/items/${itemIndex}/quantity.json`;
+        const updateUrl = `${dbUrl}/rooms/${room}/${catIndex}/items/${targetItemIndex}/quantity.json`;
         await fetch(updateUrl, {
             method: 'PUT',
             body: JSON.stringify(newQty)
@@ -138,9 +145,9 @@ export default async function handler(req, res) {
         return res.status(200).json({
             status: 'ok',
             shift: shiftStatus,
-            item: targetItemName,
+            item: targetName,
             new_quantity: newQty,
-            message: `PMP (+1) [${shiftStatus}]`
+            message: `+1 [${shiftStatus}]`
         });
 
     } catch (err) {
