@@ -465,6 +465,7 @@ const downloadShareXConfig = () => {
     "RequestMethod": "POST",
     "RequestURL": `${window.location.origin}/api/sharex`,
     "Body": "MultipartFormData",
+    "FileFormName": "image",
     "Arguments": {
       "room": syncRoomId.value,
       "action": sharexAction.value
