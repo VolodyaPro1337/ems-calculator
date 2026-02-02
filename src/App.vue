@@ -461,11 +461,18 @@ const downloadShareXConfig = () => {
   const config = {
     "Version": "13.6.1",
     "Name": `EMS Auto (${sharexAction.value.toUpperCase()})`,
+  const config = {
+    "Version": "13.6.1",
+    "Name": `EMS Auto (${sharexAction.value.toUpperCase()})`,
     "DestinationType": "ImageUploader",
-    "RequestMethod": "GET",
-    "RequestURL": `${window.location.origin}/api/sharex?room=${syncRoomId.value}&action=${sharexAction.value}`,
-    "Body": "MultipartFormData", 
-    "FileFormName": "image", // ShareX needs this to be happy as ImageUploader
+    "RequestMethod": "POST",
+    "RequestURL": `${window.location.origin}/api/sharex`,
+    "Body": "MultipartFormData",
+    "FileFormName": "image",
+    "Arguments": {
+      "room": syncRoomId.value,
+      "action": sharexAction.value
+    },
     "URL": "$json:message$"
   }
   

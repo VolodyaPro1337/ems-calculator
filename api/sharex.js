@@ -10,10 +10,34 @@ export default async function handler(req, res) {
 
     // 2. Parse Params (Support both GET query and POST body if parsed, but Vercel requires middleware for body)
     // To keep it simple and reliable with ShareX, we will force ShareX to send GET request with params in URL.
-    const { room, action } = req.query;
+    // 2. Parse Params (Handle both Query Strings and Multipart Body)
+    let room = req.query.room;
+    let action = req.query.action;
+
+    // Helper to parse body if params are missing (for POST from ShareX)
+    if (!room || !action) {
+        if (req.method === 'POST') {
+            // Basic multipart parser hack to find "room" and "action" fields
+            // We don't need a full library if we just grep the buffer/string
+            // Vercel serverless receives standard req which can be consumed
+            const buffers = [];
+            for await (const chunk of req) {
+                buffers.push(chunk);
+            }
+            const data = Buffer.concat(buffers).toString();
+
+            // Regex to find form-data values
+            // Content-Disposition: form-data; name="room"\r\n\r\n(VALUE)\r\n
+            const roomMatch = data.match(/name="room"(?:\r\n|\n){2}(.*?)(?:\r\n|\n)/);
+            const actionMatch = data.match(/name="action"(?:\r\n|\n){2}(.*?)(?:\r\n|\n)/);
+
+            if (roomMatch) room = roomMatch[1].trim();
+            if (actionMatch) action = actionMatch[1].trim();
+        }
+    }
 
     if (!room) {
-        return res.status(400).json({ error: 'Missing room code', query: req.query });
+        return res.status(400).json({ error: 'Missing room code' });
     }
 
     // Action validation moved to switch
