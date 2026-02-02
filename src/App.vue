@@ -137,8 +137,8 @@ const categories = ref([
     items: [
       { name: 'Оказание ПМП День', points: 4, quantity: 0 },
       { name: 'Оказание ПМП Ночь', points: 6, quantity: 0 },
-      { name: 'ПМП с интерном День', points: 5, quantity: 0 },
-      { name: 'ПМП с интерном Ночь', points: 7, quantity: 0 },
+      { name: 'ПМП с интерном День', points: 1, quantity: 0 },
+      { name: 'ПМП с интерном Ночь', points: 1, quantity: 0 },
       { name: 'Отмена ПМП', points: 1, quantity: 0 },
       { name: 'Выдача таблетка на выезде ПМП День', points: 1, quantity: 0 },
       { name: 'Выдача таблетка на выезде ПМП Ночь', points: 2, quantity: 0 },
