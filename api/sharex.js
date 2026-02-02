@@ -8,10 +8,12 @@ export default async function handler(req, res) {
         return res.status(200).end();
     }
 
+    // 2. Parse Params (Support both GET query and POST body if parsed, but Vercel requires middleware for body)
+    // To keep it simple and reliable with ShareX, we will force ShareX to send GET request with params in URL.
     const { room, action } = req.query;
 
     if (!room) {
-        return res.status(400).json({ error: 'Missing room code' });
+        return res.status(400).json({ error: 'Missing room code', query: req.query });
     }
 
     // Action validation moved to switch
