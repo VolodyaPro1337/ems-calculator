@@ -14,10 +14,8 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Missing room code' });
     }
 
-    // Only support 'pmp' action for now
-    if (action !== 'pmp') {
-        return res.status(400).json({ error: 'Uknown action' });
-    }
+    // Action validation moved to switch
+
 
     // 2. Logic: Determine Shift
     // UTC+3 (Moscow/Majestic)
@@ -39,7 +37,34 @@ export default async function handler(req, res) {
     }
 
     const shiftStatus = isDay ? 'День' : 'Ночь';
-    const targetItemName = `Оказание ПМП ${shiftStatus}`;
+
+    // Action Map
+    let targetCatId = '';
+    let targetItemName = '';
+
+    // Simplified Location Logic (Defaults to ELSH/City)
+    const location = 'ELSH';
+
+    switch (action) {
+        case 'pmp':
+            targetCatId = 'firstaid';
+            targetItemName = `Оказание ПМП ${shiftStatus}`;
+            break;
+        case 'pills':
+            targetCatId = 'pills';
+            targetItemName = `Выдача таблетки в ${location} ${shiftStatus}`;
+            break;
+        case 'vaccine':
+            targetCatId = 'vaccination';
+            targetItemName = `Вакцинация в ${location} ${shiftStatus}`;
+            break;
+        case 'medcert':
+            targetCatId = 'certificates';
+            targetItemName = `Выдача 1 мед. справки в ${location} ${shiftStatus}`;
+            break;
+        default:
+            return res.status(400).json({ error: 'Unknown action. Use: pmp, pills, vaccine, medcert' });
+    }
 
     // 3. Firebase Interaction (REST API)
     // We need to fetch the room data to find the index of the item to increment
@@ -60,8 +85,8 @@ export default async function handler(req, res) {
         }
 
         // B. Find Item Indices
-        const catIndex = categories.findIndex(c => c.id === 'firstaid');
-        if (catIndex === -1) return res.status(500).json({ error: 'Cat not found' });
+        const catIndex = categories.findIndex(c => c.id === targetCatId);
+        if (catIndex === -1) return res.status(500).json({ error: `Category '${targetCatId}' not found` });
 
         const itemIndex = categories[catIndex].items.findIndex(i => i.name === targetItemName);
         if (itemIndex === -1) return res.status(500).json({ error: 'Item not found' });

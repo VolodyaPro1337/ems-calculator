@@ -453,18 +453,20 @@ onMounted(() => {
   setInterval(updateShiftStatus, 60000) // update every minute
 })
 
+const sharexAction = ref('pmp') // pmp, pills, vaccine, medcert
+
 const downloadShareXConfig = () => {
   if (!syncRoomId.value) return
   
   const config = {
     "Version": "13.6.1",
-    "Name": "EMS PMP Auto",
+    "Name": `EMS Auto (${sharexAction.value.toUpperCase()})`,
     "DestinationType": "URLShortener",
     "RequestMethod": "GET",
     "RequestURL": `${window.location.origin}/api/sharex`,
     "Parameters": {
       "room": syncRoomId.value,
-      "action": "pmp"
+      "action": sharexAction.value
     }
   }
   
@@ -472,7 +474,7 @@ const downloadShareXConfig = () => {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `EMS_PMP_${syncRoomId.value}.sxcu`
+  a.download = `EMS_${sharexAction.value.toUpperCase()}_${syncRoomId.value}.sxcu`
   document.body.appendChild(a)
   a.click()
   document.body.removeChild(a)
@@ -514,14 +516,23 @@ const downloadShareXConfig = () => {
                  Подключиться
                </button>
 
-               <button 
-                 v-if="isSyncing" 
-                 @click="downloadShareXConfig" 
-                 class="w-full py-3 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-xl font-bold transition-colors flex items-center justify-center gap-2"
-               >
-                 <Cloud class="w-4 h-4" />
-                 Скачать конфиг ShareX
-               </button>
+               <div v-if="isSyncing" class="space-y-2 pt-2 border-t border-white/10">
+                  <label class="text-xs font-bold text-slate-500 uppercase">Настройка ShareX</label>
+                  <select v-model="sharexAction" class="w-full bg-[#0B1120] text-indigo-300 rounded-lg p-2 text-sm font-bold border border-indigo-500/20 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                    <option value="pmp">🚑 ПМП (First Aid)</option>
+                    <option value="pills">💊 Таблетки (City)</option>
+                    <option value="vaccine">💉 Вакцинация (City)</option>
+                    <option value="medcert">📄 Мед. справки (City)</option>
+                  </select>
+                  
+                  <button 
+                    @click="downloadShareXConfig" 
+                    class="w-full py-3 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-xl font-bold transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Cloud class="w-4 h-4" />
+                    Скачать конфиг
+                  </button>
+               </div>
 
                <div class="relative py-2">
                  <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-white/10"></div></div>
