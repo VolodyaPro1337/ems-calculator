@@ -135,12 +135,33 @@ export default async function handler(req, res) {
         // Target Name for response (optional, try to get from DB or fallback)
         const targetName = categories[catIndex].items[targetItemIndex].name || `${targetCatId} #${targetItemIndex}`;
 
-        // D. Write back ONLY the quantity
-        const updateUrl = `${dbUrl}/rooms/${room}/${catIndex}/items/${targetItemIndex}/quantity.json`;
-        await fetch(updateUrl, {
-            method: 'PUT',
-            body: JSON.stringify(newQty)
-        });
+        // C. Debounce Check (Prevent double counting from duplicate requests)
+        // We use a separate path 'debounce/' to track the last update time for this item
+        const debounceKey = `debounce/${room}/${targetCatId}_${targetItemIndex}`;
+        const debounceUrl = `${dbUrl}/${debounceKey}.json`;
+
+        const lastUpdateRes = await fetch(debounceUrl);
+        const lastUpdate = await lastUpdateRes.json(); // returns timestamp number or null
+
+        const nowTime = Date.now();
+
+        // If the last update was less than 2000ms ago, ignore this request
+        if (lastUpdate && (nowTime - lastUpdate < 2000)) {
+            return res.status(200).json({
+                status: 'ignored',
+                message: 'Duplicate request ignored (<2s)',
+                shift: shiftStatus
+            });
+        }
+
+        // D. Write back Quantity AND Debounce Timestamp
+        // We run these in parallel for speed
+        const updateQtyUrl = `${dbUrl}/rooms/${room}/${catIndex}/items/${targetItemIndex}/quantity.json`;
+
+        await Promise.all([
+            fetch(updateQtyUrl, { method: 'PUT', body: JSON.stringify(newQty) }),
+            fetch(debounceUrl, { method: 'PUT', body: JSON.stringify(nowTime) })
+        ]);
 
         return res.status(200).json({
             status: 'ok',
