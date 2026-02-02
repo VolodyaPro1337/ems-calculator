@@ -400,7 +400,10 @@ watch(categories, (newVal) => {
   const state = newVal.map(cat => ({
     id: cat.id,
     isOpen: cat.isOpen, 
-    items: cat.items.map(item => ({ quantity: item.quantity }))
+    items: cat.items.map(item => ({ 
+      name: item.name, 
+      quantity: item.quantity 
+    }))
   }))
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
 
