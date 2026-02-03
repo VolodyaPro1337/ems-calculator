@@ -50,14 +50,20 @@ export function useShareX(syncRoomId: { value: string }) {
         break
     }
 
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+    const apiKey = import.meta.env.VITE_API_KEY || 'ems-secure-key'
+
     const config = {
       Version: '13.6.1',
       Name: `EMS Auto (${sharexAction.value.toUpperCase()})`,
       DestinationType: 'ImageUploader',
       RequestMethod: 'POST',
-      RequestURL: `http://localhost:3000/upload`,
+      RequestURL: `${apiUrl}/upload`,
       Body: 'MultipartFormData',
       FileFormName: 'image',
+      Headers: {
+        'x-api-key': apiKey
+      },
       Arguments: {
         room: syncRoomId.value,
         catId: catId,

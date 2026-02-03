@@ -28,3 +28,4 @@ dist-ssr
 # Server
 server/node_modules
 server/uploads
+server/service-account.json

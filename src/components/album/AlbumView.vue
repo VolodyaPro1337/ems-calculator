@@ -8,6 +8,8 @@ const props = defineProps<{
   roomId: string
 }>()
 
+const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+
 const isLoading = ref(false)
 const error = ref('')
 const albumData = ref<any>(null)
@@ -28,7 +30,8 @@ const fetchAlbum = async () => {
   error.value = ''
   
   try {
-    const res = await fetch(`http://localhost:3000/albums/${props.roomId}`)
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+    const res = await fetch(`${apiUrl}/albums/${props.roomId}`)
     const data = await res.json()
     albumData.value = data.tree || {}
   } catch (e) {
@@ -146,12 +149,12 @@ onMounted(fetchAlbum)
                          class="group relative aspect-video bg-black/40 rounded-lg overflow-hidden border border-white/5 hover:border-indigo-500/50 transition-colors"
                        >
                           <img 
-                            :src="`http://localhost:3000${imgUrl}`" 
+                            :src="`${apiUrl}${imgUrl}`" 
                             loading="lazy" 
                             class="w-full h-full object-cover"
                           />
                           <div class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-                             <a :href="`http://localhost:3000${imgUrl}`" target="_blank" class="text-white text-xs font-bold underline">Открыть</a>
+                             <a :href="`${apiUrl}${imgUrl}`" target="_blank" class="text-white text-xs font-bold underline">Открыть</a>
                           </div>
                        </div>
                     </div>

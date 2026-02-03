@@ -12,113 +12,170 @@ const PORT = process.env.PORT || 3000;
 // Enable CORS and JSON parsing
 app.use(cors());
 app.use(express.json());
+app.use(express.json()); // Keep JSON parsing for req.body
 
 // Serve static files (uploads)
-// This allows <img src="http://server/uploads/ROOM/CAT/ITEM/img.webp">
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// This allows <img src="http://server/ROOM/CAT/ITEM/img.webp">
+app.use(express.static('uploads')); // Serve static files from 'uploads' directory directly
 
-// Configure Multer (Memory Storage for Sharp processing)
+// 2. Auth Middleware
+const authMiddleware = (req, res, next) => {
+    // Skip auth for GET (viewing images) or restrict if needed.
+    // Here we protect UPLOAD.
+    if (req.method === 'POST') {
+        const key = req.headers['x-api-key'];
+        if (!key || key !== API_KEY) {
+            return res.status(403).json({ error: 'Forbidden: Invalid API Key' });
+        }
+    }
+    next();
+};
+
+app.use(authMiddleware);
+
+// 3. Storage Config
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-// Helper: Ensure directory exists
-const ensureDir = (dirPath) => {
-    if (!fs.existsSync(dirPath)) {
-        fs.mkdirSync(dirPath, { recursive: true });
-    }
-};
+// 4. Helper to update Firebase
+async function updateFirebaseCount(roomId, catId, itemId) {
+    if (!admin.apps.length) return; // Skip if no firebase
 
-/**
- * POST /upload
- * Accepts: 'image' (file), 'room' (string), 'catId' (string), 'itemIndex' (int)
- * Effect: Resizes, Compresses to WebP, Saves to disk.
- */
-app.post('/upload', upload.single('image'), async (req, res) => {
+    const db = admin.database();
+
+    // Path: rooms/{room}/ (This is an Array of Categories)
+    // We need to find the INDEX of the category with id === catId
+
     try {
-        if (!req.file) {
-            return res.status(400).json({ error: 'No image file uploaded' });
+        const roomRef = db.ref(`rooms/${roomId}`);
+        const snapshot = await roomRef.once('value');
+        const categories = snapshot.val();
+
+        if (!categories) {
+            console.error(`Room ${roomId} not found in DB`);
+            return;
         }
 
-        const { room, catId, itemIndex } = req.body;
-
-        if (!room || !catId || itemIndex === undefined) {
-            return res.status(400).json({ error: 'Missing metadata: room, catId, itemIndex' });
+        // Find Category Index
+        const catIndex = categories.findIndex(c => c.id === catId);
+        if (catIndex === -1) {
+            console.error(`Category ${catId} not found in room ${roomId}`);
+            return;
         }
 
-        // Sanitize inputs to prevent path traversal
-        const safeRoom = room.replace(/[^a-zA-Z0-9]/g, '');
-        const safeCat = catId.replace(/[^a-zA-Z0-9]/g, '');
-        const safeIndex = parseInt(itemIndex);
+        // Get Item Index (itemId passed from client is typically the Direct Index 0,1,2...)
+        // But we should verify it exists
+        const itemIndex = parseInt(itemId);
+        if (isNaN(itemIndex) || !categories[catIndex].items[itemIndex]) {
+            console.error(`Item Index ${itemIndex} invalid in category ${catId}`);
+            return;
+        }
 
-        // Define Path: uploads/ROOM/CAT/INDEX/timestamp.webp
-        const uploadDir = path.join(__dirname, 'uploads', safeRoom, safeCat, String(safeIndex));
-        ensureDir(uploadDir);
+        // Increment Quantity
+        const oldQty = categories[catIndex].items[itemIndex].quantity || 0;
+        const targetPath = `rooms/${roomId}/${catIndex}/items/${itemIndex}/quantity`;
 
-        const timestamp = Date.now();
-        const filename = `${timestamp}.webp`;
-        const filePath = path.join(uploadDir, filename);
+        await db.ref(targetPath).set(oldQty + 1);
+        console.log(`[Firebase] Updated ${targetPath}: ${oldQty} -> ${oldQty + 1}`);
 
-        // Process Image with Sharp
-        // 1. Resize to max 1280px width (maintaining aspect ratio) without enlarging
-        // 2. Convert to WebP with 70% quality
+    } catch (err) {
+        console.error("[Firebase] Sync Error:", err);
+    }
+}
+
+// 5. Upload Endpoint
+app.post('/upload', upload.single('image'), async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ error: 'No image provided' });
+    }
+
+    const { room, catId, itemIndex } = req.body; // ShareX Arguments
+
+    // Input Validation
+    if (!room || !catId || itemIndex === undefined) {
+        return res.status(400).json({ error: 'Missing metadata (room, catId, itemIndex)' });
+    }
+
+    // Sanitize
+    const safeRoom = room.replace(/[^a-zA-Z0-9]/g, '');
+    const safeCat = catId.replace(/[^a-zA-Z0-9]/g, '');
+    const safeIndex = parseInt(itemIndex);
+
+    // const matchName = req.file.originalname.replace(/\.[^/.]+$/, ""); // Not used in new logic
+    const timestamp = Date.now();
+
+    // Directory: uploads/ROOM/CAT/INDEX/
+    const uploadDir = path.join(__dirname, 'uploads', safeRoom, safeCat, String(safeIndex));
+
+    if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+    }
+
+    const filename = `${timestamp}.webp`;
+    const filePath = path.join(uploadDir, filename);
+
+    try {
+        // Optimize & Save
         await sharp(req.file.buffer)
             .resize({ width: 1280, withoutEnlargement: true })
             .webp({ quality: 70 })
             .toFile(filePath);
 
-        console.log(`Saved: ${filePath} (${(req.file.size / 1024).toFixed(1)}KB -> Optimized)`);
+        console.log(`Saved: ${filePath}`);
 
-        // Return URL
-        const fileUrl = `/uploads/${safeRoom}/${safeCat}/${safeIndex}/${filename}`;
+        // Update Firebase Counter
+        await updateFirebaseCount(safeRoom, safeCat, safeIndex);
+
+        // Return URL correctly constructed
+        // Note: Client assumes direct path access relative to server root
+        // If static serve is on root, then /safeRoom/... works
+        const fileUrl = `/${safeRoom}/${safeCat}/${safeIndex}/${filename}`;
 
         res.json({
-            success: true,
+            status: 'ok',
             url: fileUrl,
-            message: 'Image optimized and saved'
+            params: { room: safeRoom, cat: safeCat, index: safeIndex }
         });
 
-    } catch (error) {
-        console.error('Upload Error:', error);
-        res.status(500).json({ error: 'Internal Server Error: ' + error.message });
+    } catch (err) {
+        console.error("Processing Error", err);
+        res.status(500).json({ error: 'Image processing failed' });
     }
 });
 
-/**
- * GET /albums/:room
- * Returns a tree of all files for a specific room.
- * Used by the Frontend Album view.
- */
+// 6. Album Data Endpoint
 app.get('/albums/:room', (req, res) => {
+    const { room } = req.params;
+    const safeRoom = room.replace(/[^a-zA-Z0-9]/g, '');
+    const rootDir = path.join(__dirname, 'uploads', safeRoom);
+
+    if (!fs.existsSync(rootDir)) {
+        return res.json({ room: safeRoom, tree: {} });
+    }
+
+    // Helper to list files recursively properly mapped to { catId: { itemIndex: [urls] } }
+    const result = {};
+
     try {
-        const { room } = req.params;
-        const safeRoom = room.replace(/[^a-zA-Z0-9]/g, '');
-        const roomDir = path.join(__dirname, 'uploads', safeRoom);
+        const categories = fs.readdirSync(rootDir);
 
-        if (!fs.existsSync(roomDir)) {
-            return res.json({ room: safeRoom, categories: {} }); // Empty room
-        }
+        categories.forEach(cat => {
+            const catPath = path.join(rootDir, cat);
+            if (fs.statSync(catPath).isDirectory()) {
+                result[cat] = {};
 
-        // Structure: { catId: { itemIndex: [ 'url1', 'url2' ] } }
-        const result = {};
+                const items = fs.readdirSync(catPath);
+                items.forEach(itemIdx => {
+                    const itemPath = path.join(catPath, itemIdx);
+                    if (fs.statSync(itemPath).isDirectory()) {
 
-        const categories = fs.readdirSync(roomDir);
-
-        categories.forEach(catId => {
-            const catDir = path.join(roomDir, catId);
-            if (fs.statSync(catDir).isDirectory()) {
-                result[catId] = {};
-                const items = fs.readdirSync(catDir);
-
-                items.forEach(itemIndex => {
-                    const itemDir = path.join(catDir, itemIndex);
-                    if (fs.statSync(itemDir).isDirectory()) {
-                        const files = fs.readdirSync(itemDir)
+                        const files = fs.readdirSync(itemPath)
                             .filter(f => f.endsWith('.webp'))
-                            .sort() // Sort by timestamp (filename) usually
-                            .reverse() // Newest first
-                            .map(f => `/uploads/${safeRoom}/${catId}/${itemIndex}/${f}`);
+                            .map(f => `/${safeRoom}/${cat}/${itemIdx}/${f}`); // Construct URL
 
-                        result[catId][itemIndex] = files;
+                        // Sort by new
+                        files.sort().reverse();
+                        result[cat][itemIdx] = files;
                     }
                 });
             }
@@ -126,14 +183,14 @@ app.get('/albums/:room', (req, res) => {
 
         res.json({ room: safeRoom, tree: result });
 
-    } catch (error) {
-        console.error('Album Error:', error);
-        res.status(500).json({ error: 'Failed to list album' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to scan directory' });
     }
 });
 
-
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
-    console.log(`Uploads available at http://localhost:${PORT}/uploads`);
+    console.log("Auth Guard Active. API Key Required for POST.");
+    console.log(`Uploads available at http://localhost:${PORT}/<room>/<cat>/<item>/<filename>.webp`);
 });
