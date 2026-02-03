@@ -24,3 +24,7 @@ dist-ssr
 *.sw?
 .vercel
 .env
+
+# Server
+server/node_modules
+server/uploads

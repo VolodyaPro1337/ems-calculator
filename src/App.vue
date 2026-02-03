@@ -15,6 +15,11 @@ import AppFooter from '@/components/layout/AppFooter.vue'
 import CategoryList from '@/components/calculator/CategoryList.vue'
 import SyncModal from '@/components/modals/SyncModal.vue'
 import HistorySidebar from '@/components/modals/HistorySidebar.vue'
+import AlbumView from '@/components/album/AlbumView.vue'
+
+import { ref } from 'vue'
+
+const currentTab = ref<'calculator' | 'album'>('calculator')
 
 // Initialize composables
 const {
@@ -77,13 +82,45 @@ onMounted(() => {
         @disconnect="sync.disconnectSync"
       />
 
-      <!-- Category List -->
-      <CategoryList
-        :categories="categories"
-        @toggle="toggleCategory"
-        @increment="increment"
-        @decrement="decrement"
-      />
+      <!-- Tab Navigation -->
+      <div class="flex p-1 bg-[#151C2C] border border-white/5 rounded-xl">
+        <button 
+          @click="currentTab = 'calculator'"
+          :class="[
+            'flex-1 py-3 text-sm font-bold rounded-lg transition-all',
+            currentTab === 'calculator' 
+              ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20' 
+              : 'text-slate-500 hover:text-slate-300'
+          ]"
+        >
+          Калькулятор
+        </button>
+        <button 
+          @click="currentTab = 'album'"
+          :class="[
+            'flex-1 py-3 text-sm font-bold rounded-lg transition-all',
+            currentTab === 'album' 
+              ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20' 
+              : 'text-slate-500 hover:text-slate-300'
+          ]"
+        >
+          Альбом
+        </button>
+      </div>
+
+      <!-- Views -->
+      <div v-if="currentTab === 'calculator'">
+        <CategoryList
+          :categories="categories"
+          @toggle="toggleCategory"
+          @increment="increment"
+          @decrement="decrement"
+        />
+      </div>
+
+      <div v-else>
+        <AlbumView :room-id="sync.syncRoomId.value" />
+      </div>
 
       <!-- Spacer for Footer -->
       <div class="h-24 md:h-32 w-full"></div>
