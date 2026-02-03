@@ -39,7 +39,8 @@ const handleCreate = () => {
     leave-active-class="transition ease-in duration-150" 
     leave-from-class="opacity-100 scale-100" 
     leave-to-class="opacity-0 scale-95"
-  >\n    <div v-if="modelValue" class="fixed inset-0 z-[80] flex items-center justify-center px-4">
+  >
+    <div v-if="modelValue" class="fixed inset-0 z-[80] flex items-center justify-center px-4">
       <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="emit('update:modelValue', false)"></div>
       <div class="relative w-full max-w-sm bg-[#151C2C] border border-white/10 rounded-2xl p-6 shadow-2xl">
         <h2 class="text-xl font-bold text-white mb-4">Синхронизация</h2>
