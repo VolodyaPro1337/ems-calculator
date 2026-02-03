@@ -47,6 +47,7 @@ const emit = defineEmits<{
       </button>
 
       <button 
+        v-if="!isAuditMode"
         @click="emit('openHistory')" 
         class="p-3 rounded-xl bg-[#151C2C] text-indigo-400 hover:text-white hover:bg-indigo-500/20 transition-all border border-white/10 shadow-lg"
         title="История отчётов"

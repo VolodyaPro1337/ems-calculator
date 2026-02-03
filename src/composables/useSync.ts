@@ -149,8 +149,22 @@ export function useSync(categories: Ref<Category[]>, saveState: () => void) {
   const initSync = () => {
     // Check URL params first
     const params = new URLSearchParams(window.location.search)
-    const urlRoom = params.get('room')
-    const urlAudit = params.get('audit') === 'true'
+    const token = params.get('token')
+    
+    let urlRoom = params.get('room')
+    let urlAudit = params.get('audit') === 'true'
+
+    // Decode token if exists
+    if (token) {
+      try {
+        const decoded = atob(token)
+        const tokenParams = new URLSearchParams(decoded)
+        urlRoom = tokenParams.get('room')
+        urlAudit = tokenParams.get('audit') === 'true'
+      } catch (e) {
+        console.error('Invalid audit token')
+      }
+    }
 
     if (urlRoom) {
       connectToSync(urlRoom, urlAudit)

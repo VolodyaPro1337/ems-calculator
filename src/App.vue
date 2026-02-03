@@ -38,7 +38,9 @@ const { currentShift, shiftLabel } = useShift()
 const { showCopyFeedback, copyReport } = useClipboard()
 
 const handleCopyAuditLink = () => {
-  const url = `${window.location.origin}/?room=${syncRoomId.value}&audit=true`
+  // Base64 encoding to hide room ID from casual view
+  const token = btoa(`room=${syncRoomId.value}&audit=true`)
+  const url = `${window.location.origin}/?token=${token}`
   navigator.clipboard.writeText(url).then(() => {
     // We can reuse showCopyFeedback from useClipboard
     showCopyFeedback.value = true
