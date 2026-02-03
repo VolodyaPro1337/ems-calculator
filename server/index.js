@@ -1,38 +1,51 @@
-const API_KEY = process.env.API_KEY;
-const serviceAccount = require('./service-account.json');
-const admin = require('firebase-admin');
+require('dotenv').config(); // Load variables from .env FIRST
 const express = require('express');
 const multer = require('multer');
 const sharp = require('sharp');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
-require('dotenv').config();
+const admin = require('firebase-admin');
+
+// 1. Initialize Firebase Admin
+// We use a safe try-catch and check if apps already exists (prevents crash on hot-reload)
+if (!admin.apps.length) {
+    try {
+        const serviceAccount = require('./service-account.json');
+        admin.initializeApp({
+            credential: admin.credential.cert(serviceAccount),
+            databaseURL: process.env.FIREBASE_DATABASE_URL || "https://ems-calculator-21321-default-rtdb.europe-west1.firebasedatabase.app/"
+        });
+        console.log("[Firebase] Admin SDK Initialized");
+    } catch (err) {
+        console.error("[Firebase] Initialization Failed. Check service-account.json location.");
+        console.error(err.message);
+    }
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const API_KEY = process.env.API_KEY;
 
-admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-    databaseURL: "https://ems-calculator-21321-default-rtdb.firebaseio.com"
-});
+if (!API_KEY) {
+    console.warn("⚠️  WARNING: API_KEY is not set in .env! Uploads might be blocked or insecure.");
+}
 
 // Enable CORS and JSON parsing
 app.use(cors());
 app.use(express.json());
-app.use(express.json()); // Keep JSON parsing for req.body
 
-// Serve static files (uploads)
-// This allows <img src="http://server/ROOM/CAT/ITEM/img.webp">
-app.use(express.static('uploads')); // Serve static files from 'uploads' directory directly
+// Serve static files from 'uploads' directory
+// Path on disk: server/uploads -> Access via: http://server/ROOM/CAT/...
+app.use(express.static(path.join(__dirname, 'uploads')));
 
 // 2. Auth Middleware
 const authMiddleware = (req, res, next) => {
-    // Skip auth for GET (viewing images) or restrict if needed.
-    // Here we protect UPLOAD.
-    if (req.method === 'POST') {
+    // Only protect POST /upload
+    if (req.method === 'POST' && req.path === '/upload') {
         const key = req.headers['x-api-key'];
         if (!key || key !== API_KEY) {
+            console.log(`[Auth] Blocked request from ${req.ip} - Invalid Key`);
             return res.status(403).json({ error: 'Forbidden: Invalid API Key' });
         }
     }
@@ -45,14 +58,14 @@ app.use(authMiddleware);
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-// 4. Helper to update Firebase
+/**
+ * 4. Helper to update Firebase
+ * Increments quantity in Realtime Database for the specific item.
+ */
 async function updateFirebaseCount(roomId, catId, itemId) {
-    if (!admin.apps.length) return; // Skip if no firebase
+    if (!admin.apps.length) return;
 
     const db = admin.database();
-
-    // Path: rooms/{room}/ (This is an Array of Categories)
-    // We need to find the INDEX of the category with id === catId
 
     try {
         const roomRef = db.ref(`rooms/${roomId}`);
@@ -60,34 +73,32 @@ async function updateFirebaseCount(roomId, catId, itemId) {
         const categories = snapshot.val();
 
         if (!categories) {
-            console.error(`Room ${roomId} not found in DB`);
+            console.error(`[Firebase] Room ${roomId} not found`);
             return;
         }
 
-        // Find Category Index
         const catIndex = categories.findIndex(c => c.id === catId);
         if (catIndex === -1) {
-            console.error(`Category ${catId} not found in room ${roomId}`);
+            console.error(`[Firebase] Category ${catId} not found in room ${roomId}`);
             return;
         }
 
-        // Get Item Index (itemId passed from client is typically the Direct Index 0,1,2...)
-        // But we should verify it exists
         const itemIndex = parseInt(itemId);
         if (isNaN(itemIndex) || !categories[catIndex].items[itemIndex]) {
-            console.error(`Item Index ${itemIndex} invalid in category ${catId}`);
+            console.error(`[Firebase] Item Index ${itemIndex} invalid in category ${catId}`);
             return;
         }
 
-        // Increment Quantity
-        const oldQty = categories[catIndex].items[itemIndex].quantity || 0;
-        const targetPath = `rooms/${roomId}/${catIndex}/items/${itemIndex}/quantity`;
-
-        await db.ref(targetPath).set(oldQty + 1);
-        console.log(`[Firebase] Updated ${targetPath}: ${oldQty} -> ${oldQty + 1}`);
+        // Use transaction or increment for thread safety
+        const quantityRef = db.ref(`rooms/${roomId}/${catIndex}/items/${itemIndex}/quantity`);
+        await quantityRef.transaction((currentValue) => {
+            return (currentValue || 0) + 1;
+        });
+        
+        console.log(`[Firebase] Room ${roomId}: Incremented ${catId}/${itemIndex}`);
 
     } catch (err) {
-        console.error("[Firebase] Sync Error:", err);
+        console.error("[Firebase] Sync Error:", err.message);
     }
 }
 
@@ -97,9 +108,8 @@ app.post('/upload', upload.single('image'), async (req, res) => {
         return res.status(400).json({ error: 'No image provided' });
     }
 
-    const { room, catId, itemIndex } = req.body; // ShareX Arguments
+    const { room, catId, itemIndex } = req.body;
 
-    // Input Validation
     if (!room || !catId || itemIndex === undefined) {
         return res.status(400).json({ error: 'Missing metadata (room, catId, itemIndex)' });
     }
@@ -109,10 +119,7 @@ app.post('/upload', upload.single('image'), async (req, res) => {
     const safeCat = catId.replace(/[^a-zA-Z0-9]/g, '');
     const safeIndex = parseInt(itemIndex);
 
-    // const matchName = req.file.originalname.replace(/\.[^/.]+$/, ""); // Not used in new logic
     const timestamp = Date.now();
-
-    // Directory: uploads/ROOM/CAT/INDEX/
     const uploadDir = path.join(__dirname, 'uploads', safeRoom, safeCat, String(safeIndex));
 
     if (!fs.existsSync(uploadDir)) {
@@ -129,24 +136,22 @@ app.post('/upload', upload.single('image'), async (req, res) => {
             .webp({ quality: 70 })
             .toFile(filePath);
 
-        console.log(`Saved: ${filePath}`);
+        console.log(`[Disk] Saved: ${safeRoom}/${safeCat}/${safeIndex}/${filename}`);
 
         // Update Firebase Counter
         await updateFirebaseCount(safeRoom, safeCat, safeIndex);
 
         // Return URL correctly constructed
-        // Note: Client assumes direct path access relative to server root
-        // If static serve is on root, then /safeRoom/... works
         const fileUrl = `/${safeRoom}/${safeCat}/${safeIndex}/${filename}`;
 
         res.json({
             status: 'ok',
             url: fileUrl,
-            params: { room: safeRoom, cat: safeCat, index: safeIndex }
+            message: 'Image processed and count incremented'
         });
 
     } catch (err) {
-        console.error("Processing Error", err);
+        console.error("[Sharp] Processing Error", err);
         res.status(500).json({ error: 'Image processing failed' });
     }
 });
@@ -161,7 +166,6 @@ app.get('/albums/:room', (req, res) => {
         return res.json({ room: safeRoom, tree: {} });
     }
 
-    // Helper to list files recursively properly mapped to { catId: { itemIndex: [urls] } }
     const result = {};
 
     try {
@@ -176,12 +180,10 @@ app.get('/albums/:room', (req, res) => {
                 items.forEach(itemIdx => {
                     const itemPath = path.join(catPath, itemIdx);
                     if (fs.statSync(itemPath).isDirectory()) {
-
                         const files = fs.readdirSync(itemPath)
                             .filter(f => f.endsWith('.webp'))
-                            .map(f => `/${safeRoom}/${cat}/${itemIdx}/${f}`); // Construct URL
+                            .map(f => `/${safeRoom}/${cat}/${itemIdx}/${f}`);
 
-                        // Sort by new
                         files.sort().reverse();
                         result[cat][itemIdx] = files;
                     }
@@ -192,13 +194,13 @@ app.get('/albums/:room', (req, res) => {
         res.json({ room: safeRoom, tree: result });
 
     } catch (err) {
-        console.error(err);
+        console.error("[Album] Scan Error", err);
         res.status(500).json({ error: 'Failed to scan directory' });
     }
 });
 
 app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-    console.log("Auth Guard Active. API Key Required for POST.");
-    console.log(`Uploads available at http://localhost:${PORT}/<room>/<cat>/<item>/<filename>.webp`);
+    console.log(`\n🚀 Server running on http://localhost:${PORT}`);
+    console.log(`📁 Uploads served from: ${path.join(__dirname, 'uploads')}`);
+    console.log("🔐 Auth Guard Active. API Key Required for POST /upload.\n");
 });
