@@ -30,4 +30,16 @@ export interface SyncState {
   roomId: string
   isSyncing: boolean
   isRemoteUpdate: boolean
+  isAuditMode: boolean
+  nickname?: string
+  staticId?: string
+}
+
+export interface Proof {
+  id: string
+  url: string
+  timestamp: string
+  action: string
+  shift: ShiftType
+  itemName: string
 }

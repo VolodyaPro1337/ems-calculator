@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 
 // Composables
 import { useCategories } from '@/composables/useCategories'
@@ -17,8 +17,6 @@ import SyncModal from '@/components/modals/SyncModal.vue'
 import HistorySidebar from '@/components/modals/HistorySidebar.vue'
 import AlbumView from '@/components/album/AlbumView.vue'
 
-import { ref } from 'vue'
-
 const currentTab = ref<'calculator' | 'album'>('calculator')
 
 // Initialize composables
@@ -34,10 +32,11 @@ const {
 } = useCategories()
 
 const sync = useSync(categories, saveState)
+const { isSyncing, syncRoomId, isAuditMode, nickname, staticId } = sync
 const { history, showHistory, loadHistory, addEntry, clearHistory } = useHistory()
 const { currentShift, shiftLabel } = useShift()
 const { showCopyFeedback, copyReport } = useClipboard()
-const { sharexAction, downloadShareXConfig } = useShareX(sync.syncRoomId)
+const { sharexAction, downloadShareXConfig } = useShareX(syncRoomId)
 
 // Reset with history save
 const handleReset = () => {
@@ -75,8 +74,12 @@ onMounted(() => {
       <AppHeader
         :current-shift="currentShift"
         :shift-label="shiftLabel"
-        :is-syncing="sync.isSyncing.value"
-        :sync-room-id="sync.syncRoomId.value"
+        :is-syncing="isSyncing"
+        :sync-room-id="syncRoomId"
+        :is-audit-mode="isAuditMode"
+        :nickname="nickname"
+        :static-id="staticId"
+        :grand-total="grandTotal"
         @open-sync="sync.showSyncModal.value = true"
         @open-history="showHistory = true"
         @disconnect="sync.disconnectSync"
@@ -112,6 +115,7 @@ onMounted(() => {
       <div v-if="currentTab === 'calculator'">
         <CategoryList
           :categories="categories"
+          :disabled="isAuditMode"
           @toggle="toggleCategory"
           @increment="increment"
           @decrement="decrement"
@@ -119,7 +123,7 @@ onMounted(() => {
       </div>
 
       <div v-else>
-        <AlbumView :room-id="sync.syncRoomId.value" />
+        <AlbumView :room-id="syncRoomId" />
       </div>
 
       <!-- Spacer for Footer -->
@@ -128,6 +132,7 @@ onMounted(() => {
 
     <!-- Footer -->
     <AppFooter
+      v-if="!isAuditMode"
       :grand-total="grandTotal"
       :show-copy-feedback="showCopyFeedback"
       @copy="handleCopy"
@@ -137,10 +142,10 @@ onMounted(() => {
     <!-- Modals -->
     <SyncModal
       v-model="sync.showSyncModal.value"
-      :sync-room-id="sync.syncRoomId.value"
-      :is-syncing="sync.isSyncing.value"
+      :sync-room-id="syncRoomId"
+      :is-syncing="isSyncing"
       :sharex-action="sharexAction"
-      @update:sync-room-id="sync.syncRoomId.value = $event"
+      @update:sync-room-id="syncRoomId = $event"
       @update:sharex-action="sharexAction = $event"
       @connect="sync.connectToSync"
       @disconnect="sync.disconnectSync"

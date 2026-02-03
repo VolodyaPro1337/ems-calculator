@@ -4,6 +4,7 @@ import CategoryCard from './CategoryCard.vue'
 
 defineProps<{
   categories: Category[]
+  disabled?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -19,6 +20,7 @@ const emit = defineEmits<{
       v-for="category in categories"
       :key="category.id"
       :category="category"
+      :disabled="disabled"
       @toggle="emit('toggle', category)"
       @increment="(item) => emit('increment', item)"
       @decrement="(item) => emit('decrement', item)"

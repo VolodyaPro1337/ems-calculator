@@ -7,6 +7,7 @@ import ItemRow from './ItemRow.vue'
 
 const props = defineProps<{
   category: Category
+  disabled?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -68,6 +69,7 @@ const total = computed(() => getCategoryTotal(props.category))
           v-for="(item, idx) in category.items" 
           :key="idx"
           :item="item"
+          :disabled="disabled"
           @increment="emit('increment', item)"
           @decrement="emit('decrement', item)"
         />

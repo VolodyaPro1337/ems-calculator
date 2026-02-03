@@ -4,6 +4,7 @@ import type { CategoryItem } from '@/types'
 
 defineProps<{
   item: CategoryItem
+  disabled?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -21,14 +22,14 @@ const emit = defineEmits<{
       <span 
         v-if="!item.isRawPoints" 
         class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-500 border border-white/5"
-      >
-        {{ item.points }} PTS
+      >\n        {{ item.points }} PTS
       </span>
     </div>
 
     <!-- Controls -->
     <div class="flex items-center gap-3 shrink-0">
       <button 
+        v-if="!disabled"
         @click="emit('decrement')"
         class="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 active:scale-95 transition-all disabled:opacity-30 disabled:active:scale-100"
         :disabled="item.quantity <= 0"
@@ -40,6 +41,7 @@ const emit = defineEmits<{
         <input
           type="number"
           :value="item.quantity"
+          :readonly="disabled"
           @input="emit('update:quantity', Number(($event.target as HTMLInputElement).value))"
           min="0"
           @click.stop
@@ -48,6 +50,7 @@ const emit = defineEmits<{
       </div>
 
       <button 
+        v-if="!disabled"
         @click="emit('increment')" 
         class="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 active:scale-95 transition-all"
       >
