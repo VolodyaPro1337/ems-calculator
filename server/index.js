@@ -1,3 +1,6 @@
+const API_KEY = process.env.API_KEY;
+const serviceAccount = require('./service-account.json');
+const admin = require('firebase-admin');
 const express = require('express');
 const multer = require('multer');
 const sharp = require('sharp');
@@ -8,6 +11,11 @@ require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+    databaseURL: "https://ems-calculator-21321-default-rtdb.firebaseio.com"
+});
 
 // Enable CORS and JSON parsing
 app.use(cors());
