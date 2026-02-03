@@ -36,6 +36,16 @@ const { isSyncing, syncRoomId, isAuditMode, nickname, staticId } = sync
 const { history, showHistory, loadHistory, addEntry, clearHistory } = useHistory()
 const { currentShift, shiftLabel } = useShift()
 const { showCopyFeedback, copyReport } = useClipboard()
+
+const handleCopyAuditLink = () => {
+  const url = `${window.location.origin}/?room=${syncRoomId.value}&audit=true`
+  navigator.clipboard.writeText(url).then(() => {
+    // We can reuse showCopyFeedback from useClipboard
+    showCopyFeedback.value = true
+    setTimeout(() => showCopyFeedback.value = false, 2000)
+  })
+}
+
 const { sharexAction, downloadShareXConfig } = useShareX(syncRoomId)
 
 // Reset with history save
@@ -83,6 +93,7 @@ onMounted(() => {
         @open-sync="sync.showSyncModal.value = true"
         @open-history="showHistory = true"
         @disconnect="sync.disconnectSync"
+        @copy-audit-link="handleCopyAuditLink"
       />
 
       <!-- Tab Navigation -->

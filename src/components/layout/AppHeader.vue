@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Calculator, Cloud, History as HistoryIcon, Sun, Moon, LogOut, UserCheck } from 'lucide-vue-next'
+import { Calculator, Cloud, History as HistoryIcon, Sun, Moon, LogOut, UserCheck, Share2 } from 'lucide-vue-next'
 import type { ShiftType } from '@/types'
 
 defineProps<{
@@ -17,6 +17,7 @@ const emit = defineEmits<{
   openSync: []
   openHistory: []
   disconnect: []
+  copyAuditLink: []
 }>()
 </script>
 
@@ -34,14 +35,25 @@ const emit = defineEmits<{
       <span v-if="isSyncing" class="text-xs font-bold font-mono">{{ syncRoomId }}</span>
     </button>
 
-    <!-- Right: History Button -->
-    <button 
-      @click="emit('openHistory')" 
-      class="absolute right-0 top-4 p-3 rounded-xl bg-[#151C2C] text-indigo-400 hover:text-white hover:bg-indigo-500/20 transition-all border border-white/10 shadow-lg"
-      title="История отчётов"
-    >
-      <HistoryIcon class="w-6 h-6" />
-    </button>
+    <!-- Right: Buttons -->
+    <div class="absolute right-0 top-4 flex gap-2">
+      <button 
+        v-if="isSyncing && !isAuditMode"
+        @click="emit('copyAuditLink')" 
+        class="p-3 rounded-xl bg-[#151C2C] text-emerald-400 hover:text-white hover:bg-emerald-500/20 transition-all border border-white/10 shadow-lg"
+        title="Скопировать ссылку для проверки"
+      >
+        <Share2 class="w-6 h-6" />
+      </button>
+
+      <button 
+        @click="emit('openHistory')" 
+        class="p-3 rounded-xl bg-[#151C2C] text-indigo-400 hover:text-white hover:bg-indigo-500/20 transition-all border border-white/10 shadow-lg"
+        title="История отчётов"
+      >
+        <HistoryIcon class="w-6 h-6" />
+      </button>
+    </div>
     
     <!-- Logo -->
     <div class="inline-flex items-center justify-center mb-4 p-6 rounded-full bg-[#151C2C] ring-1 ring-white/10 shadow-2xl shadow-indigo-500/20">
