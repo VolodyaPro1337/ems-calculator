@@ -73,9 +73,20 @@ export function useSync(categories: Ref<Category[]>, saveState: () => void) {
     setTimeout(() => isRemoteUpdate.value = false, 500)
   }
 
-  const createNewRoom = () => {
+  const createNewRoom = (metadata: { nickname: string; staticId: string }) => {
     const newId = Math.random().toString(36).substring(2, 8).toUpperCase()
-    connectToSync(newId)
+
+    // Save metadata immediately
+    const roomRef = dbRef(db, 'rooms/' + newId)
+    set(roomRef, {
+      metadata: {
+        nickname: metadata.nickname,
+        staticId: metadata.staticId,
+        createdAt: Date.now()
+      }
+    }).then(() => {
+      connectToSync(newId)
+    })
   }
 
   const setupWatcher = () => {

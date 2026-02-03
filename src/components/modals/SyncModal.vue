@@ -14,9 +14,16 @@ const emit = defineEmits<{
   'update:sharexAction': [value: 'pmp' | 'pills' | 'vaccine' | 'medcert']
   connect: [roomId: string]
   disconnect: []
-  createRoom: []
+  createRoom: [metadata: { nickname: string; staticId: string }]
   downloadConfig: []
 }>()
+
+import { ref } from 'vue'
+
+const newRoomData = ref({
+  nickname: '',
+  staticId: ''
+})
 </script>
 
 <template>
@@ -79,15 +86,36 @@ const emit = defineEmits<{
 
           <div class="relative py-2">
             <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-white/10"></div></div>
-            <div class="relative flex justify-center"><span class="px-2 bg-[#151C2C] text-xs text-slate-500">ИЛИ</span></div>
+            <div class="relative flex justify-center"><span class="px-2 bg-[#151C2C] text-xs text-slate-500">Создать новую комнату</span></div>
           </div>
 
-          <button 
-            @click="emit('createRoom')" 
-            class="w-full py-3 bg-white/5 hover:bg-white/10 rounded-xl text-slate-300 font-bold transition-colors"
-          >
-            Создать новую комнату
-          </button>
+          <!-- New Room Creation Fields -->
+          <div class="space-y-3 bg-white/5 p-4 rounded-xl border border-white/5">
+             <div>
+                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Ваш IC Nickname</label>
+                <input 
+                  v-model="newRoomData.nickname"
+                  placeholder="Billy Kitsune"
+                  class="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-white text-sm focus:outline-none focus:border-indigo-500"
+                />
+             </div>
+             <div>
+                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Ваш Static ID</label>
+                <input 
+                  v-model="newRoomData.staticId"
+                  placeholder="213363"
+                  class="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-white text-sm focus:outline-none focus:border-indigo-500"
+                />
+             </div>
+
+             <button 
+                @click="emit('createRoom', { nickname: newRoomData.nickname, staticId: newRoomData.staticId })" 
+                :disabled="!newRoomData.nickname || !newRoomData.staticId"
+                class="w-full py-2 bg-indigo-500 hover:bg-indigo-600 rounded-lg text-white text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Создать комнату
+              </button>
+          </div>
         </div>
         
         <button @click="emit('update:modelValue', false)" class="absolute top-4 right-4 text-slate-500 hover:text-white">
