@@ -89,18 +89,6 @@ const replacements = [
         </div>
       </div>
 
-      <!-- Creator Tag -->
-      <div class="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-[#151C2C] via-[#151C2C] to-transparent">
-        <div class="flex items-center justify-between p-4 bg-[#0B1120] rounded-2xl border border-white/5 shadow-xl">
-          <div class="flex flex-col">
-            <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">Developer</span>
-            <span class="text-xs font-bold text-white leading-none">Billy Kitsune</span>
-          </div>
-          <div class="flex flex-col items-end">
-            <span class="text-[10px] font-mono text-indigo-400 leading-none mb-1">#213363</span>
-            <span class="text-[10px] font-black text-slate-500 uppercase leading-none">EMS 6</span>
-          </div>
-        </div>
       </div>
     </div>
   </Transition>

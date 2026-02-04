@@ -92,7 +92,20 @@ onMounted(() => {
       />
 
       <!-- Spacer for Footer -->
-      <div class="h-24 md:h-32 w-full"></div>
+      <div class="h-24 md:h-32 w-full flex flex-col items-center">
+        <!-- Developer Tag -->
+        <div class="flex items-center gap-4 px-6 py-3 bg-[#151C2C] rounded-2xl border border-white/5 shadow-xl opacity-50 hover:opacity-100 transition-opacity cursor-default scale-90">
+          <div class="flex flex-col">
+            <span class="text-[8px] font-black text-slate-500 uppercase tracking-[0.2em] leading-none mb-1">Developed by</span>
+            <span class="text-xs font-bold text-white leading-none">Billy Kitsune</span>
+          </div>
+          <div class="w-px h-6 bg-white/10"></div>
+          <div class="flex flex-col items-end">
+            <span class="text-[10px] font-mono text-indigo-400 leading-none mb-1">#213363</span>
+            <span class="text-[8px] font-black text-slate-500 uppercase leading-none">EMS 6</span>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Footer -->
