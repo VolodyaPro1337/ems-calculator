@@ -16,8 +16,10 @@ import CategoryList from '@/components/calculator/CategoryList.vue'
 import SyncModal from '@/components/modals/SyncModal.vue'
 import HistorySidebar from '@/components/modals/HistorySidebar.vue'
 import AlbumView from '@/components/album/AlbumView.vue'
+import GuideSidebar from '@/components/modals/GuideSidebar.vue'
 
 const currentTab = ref<'calculator' | 'album'>('calculator')
+const showGuide = ref(false)
 
 // Initialize composables
 const {
@@ -96,6 +98,7 @@ onMounted(() => {
         @open-history="showHistory = true"
         @disconnect="sync.disconnectSync"
         @copy-audit-link="handleCopyAuditLink"
+        @open-guide="showGuide = true"
       />
 
       <!-- Tab Navigation -->
@@ -170,6 +173,10 @@ onMounted(() => {
       v-model="showHistory"
       :history="history"
       @clear="clearHistory"
+    />
+
+    <GuideSidebar
+      v-model="showGuide"
     />
   </div>
 </template>
