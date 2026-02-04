@@ -89,7 +89,7 @@ const replacements = [
         </div>
       </div>
 
-      </div>
+
     </div>
   </Transition>
 </template>
