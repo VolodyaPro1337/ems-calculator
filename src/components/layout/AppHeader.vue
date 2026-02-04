@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Calculator, Cloud, History as HistoryIcon, Sun, Moon, LogOut } from 'lucide-vue-next'
+import { Calculator, Cloud, History as HistoryIcon, Sun, Moon, LogOut, GraduationCap } from 'lucide-vue-next'
 import type { ShiftType } from '@/types'
 
 defineProps<{
@@ -12,22 +12,33 @@ defineProps<{
 const emit = defineEmits<{
   openSync: []
   openHistory: []
+  openGuide: []
   disconnect: []
 }>()
 </script>
 
 <template>
   <header class="text-center mb-6 relative">
-    <!-- Left: Sync Button -->
-    <button 
-      @click="emit('openSync')"
-      class="absolute left-0 top-4 p-3 rounded-xl transition-all border shadow-lg flex items-center gap-2"
-      :class="isSyncing ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30' : 'bg-[#151C2C] text-slate-400 border-white/10 hover:text-white hover:bg-indigo-500/20'"
-      :title="isSyncing ? `Синхронизация: ${syncRoomId}` : 'Синхронизация'"
-    >
-      <Cloud class="w-6 h-6" />
-      <span v-if="isSyncing" class="text-xs font-bold font-mono">{{ syncRoomId }}</span>
-    </button>
+    <!-- Left: Buttons -->
+    <div class="absolute left-0 top-4 flex gap-2">
+      <button 
+        @click="emit('openSync')"
+        class="p-3 rounded-xl transition-all border shadow-lg flex items-center gap-2"
+        :class="isSyncing ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30' : 'bg-[#151C2C] text-slate-400 border-white/10 hover:text-white hover:bg-indigo-500/20'"
+        :title="isSyncing ? `Синхронизация: ${syncRoomId}` : 'Синхронизация'"
+      >
+        <Cloud class="w-6 h-6" />
+        <span v-if="isSyncing" class="text-xs font-bold font-mono">{{ syncRoomId }}</span>
+      </button>
+
+      <button 
+        @click="emit('openGuide')" 
+        class="p-3 rounded-xl bg-[#151C2C] text-amber-400 hover:text-white hover:bg-amber-500/20 transition-all border border-white/10 shadow-lg"
+        title="Система повышения"
+      >
+        <GraduationCap class="w-6 h-6" />
+      </button>
+    </div>
 
     <!-- Right: History Button -->
     <button 

@@ -15,6 +15,11 @@ import AppFooter from '@/components/layout/AppFooter.vue'
 import CategoryList from '@/components/calculator/CategoryList.vue'
 import SyncModal from '@/components/modals/SyncModal.vue'
 import HistorySidebar from '@/components/modals/HistorySidebar.vue'
+import GuideSidebar from '@/components/modals/GuideSidebar.vue'
+
+import { ref } from 'vue'
+
+const showGuide = ref(false)
 
 // Initialize composables
 const {
@@ -74,6 +79,7 @@ onMounted(() => {
         :sync-room-id="sync.syncRoomId.value"
         @open-sync="sync.showSyncModal.value = true"
         @open-history="showHistory = true"
+        @open-guide="showGuide = true"
         @disconnect="sync.disconnectSync"
       />
 
@@ -115,6 +121,10 @@ onMounted(() => {
       v-model="showHistory"
       :history="history"
       @clear="clearHistory"
+    />
+
+    <GuideSidebar
+      v-model="showGuide"
     />
   </div>
 </template>
