@@ -13,6 +13,7 @@ const emit = defineEmits<{
   toggle: []
   increment: [item: CategoryItem]
   decrement: [item: CategoryItem]
+  updateQuantity: [item: CategoryItem, value: number]
 }>()
 
 const iconComponents: Record<string, Component> = {
@@ -70,6 +71,7 @@ const total = computed(() => getCategoryTotal(props.category))
           :item="item"
           @increment="emit('increment', item)"
           @decrement="emit('decrement', item)"
+          @update:quantity="(val) => emit('updateQuantity', item, val)"
         />
       </div>
     </div>

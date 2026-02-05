@@ -77,6 +77,11 @@ export function useCategories() {
     if (!skipSave) saveState()
   }
 
+  const setQuantity = (item: CategoryItem, value: number) => {
+    item.quantity = Math.max(0, value)
+    saveState()
+  }
+
   return {
     categories,
     grandTotal,
@@ -86,6 +91,7 @@ export function useCategories() {
     saveState,
     increment,
     decrement,
+    setQuantity,
     toggleCategory,
     resetAll
   }

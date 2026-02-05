@@ -29,6 +29,7 @@ const {
   saveState,
   increment,
   decrement,
+  setQuantity,
   toggleCategory,
   resetAll
 } = useCategories()
@@ -89,6 +90,7 @@ onMounted(() => {
         @toggle="toggleCategory"
         @increment="increment"
         @decrement="decrement"
+        @update-quantity="setQuantity"
       />
 
       <!-- Spacer for Footer -->

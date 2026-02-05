@@ -10,6 +10,7 @@ const emit = defineEmits<{
   toggle: [category: Category]
   increment: [item: CategoryItem]
   decrement: [item: CategoryItem]
+  updateQuantity: [item: CategoryItem, value: number]
 }>()
 </script>
 
@@ -22,6 +23,7 @@ const emit = defineEmits<{
       @toggle="emit('toggle', category)"
       @increment="(item) => emit('increment', item)"
       @decrement="(item) => emit('decrement', item)"
+      @update-quantity="(item, val) => emit('updateQuantity', item, val)"
     />
   </main>
 </template>
