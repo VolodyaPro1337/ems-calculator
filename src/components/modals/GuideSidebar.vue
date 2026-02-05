@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { X, BookOpen, GraduationCap, ArrowRightLeft } from 'lucide-vue-next'
+import { X, BookOpen, GraduationCap, ArrowRightLeft, ChevronDown } from 'lucide-vue-next'
 
 defineProps<{
   modelValue: boolean
@@ -88,8 +88,6 @@ const replacements = [
           </div>
         </div>
       </div>
-
-
     </div>
   </Transition>
 </template>
