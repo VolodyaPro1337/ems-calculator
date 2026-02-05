@@ -1,5 +1,5 @@
 const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '.env') }); 
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 const express = require('express');
 const multer = require('multer');
 const sharp = require('sharp');
@@ -59,19 +59,53 @@ const upload = multer({ storage: storage });
  * 4. Helper to update Firebase
  */
 async function updateFirebaseCount(roomId, catId, itemId) {
-    if (!admin.apps.length) return;
+    if (!admin.apps.length) {
+        console.log("[Firebase] Admin not initialized, skipping sync");
+        return;
+    }
     const db = admin.database();
     try {
-        const roomRef = db.ref(`rooms/${roomId}`);
-        const snapshot = await roomRef.once('value');
-        const categories = snapshot.val();
-        if (!categories) return;
-        const catIndex = categories.findIndex(c => c.id === catId);
-        if (catIndex === -1) return;
+        console.log(`[Firebase] Updating: room=${roomId}, cat=${catId}, item=${itemId}`);
+
+        // Категории лежат в rooms/{roomId}/data, а не напрямую в rooms/{roomId}
+        const dataRef = db.ref(`rooms/${roomId}/data`);
+        const snapshot = await dataRef.once('value');
+        const data = snapshot.val();
+
+        if (!data) {
+            console.log("[Firebase] No data found for room:", roomId);
+            return;
+        }
+
+        console.log("[Firebase] Data type:", Array.isArray(data) ? "array" : "object");
+        console.log("[Firebase] Data keys:", Object.keys(data));
+
+        // Преобразуем данные в массив если это объект
+        const categories = Array.isArray(data) ? data : Object.values(data);
+        console.log("[Firebase] Categories IDs:", categories.map(c => c?.id).filter(Boolean));
+
+        const catIndex = categories.findIndex(c => c && c.id === catId);
+        if (catIndex === -1) {
+            console.log(`[Firebase] Category ${catId} not found in categories`);
+            return;
+        }
+
         const itemIndex = parseInt(itemId);
-        if (isNaN(itemIndex) || !categories[catIndex].items[itemIndex]) return;
-        const quantityRef = db.ref(`rooms/${roomId}/${catIndex}/items/${itemIndex}/quantity`);
+        const category = categories[catIndex];
+        console.log(`[Firebase] Found category at index ${catIndex}, items count: ${category.items?.length}`);
+
+        if (isNaN(itemIndex) || !category.items || !category.items[itemIndex]) {
+            console.log(`[Firebase] Item ${itemIndex} not found in category`);
+            return;
+        }
+
+        // Находим реальный ключ категории в Firebase
+        const catKey = Array.isArray(data) ? catIndex : Object.keys(data)[catIndex];
+        console.log(`[Firebase] Using catKey: ${catKey}`);
+
+        const quantityRef = db.ref(`rooms/${roomId}/data/${catKey}/items/${itemIndex}/quantity`);
         await quantityRef.transaction((currentValue) => {
+            console.log(`[Firebase] Current value: ${currentValue}, incrementing to ${(currentValue || 0) + 1}`);
             return (currentValue || 0) + 1;
         });
         console.log(`[Firebase] Room ${roomId}: Incremented ${catId}/${itemIndex}`);
