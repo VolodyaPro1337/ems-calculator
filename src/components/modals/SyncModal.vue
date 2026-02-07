@@ -1,21 +1,18 @@
 <script setup lang="ts">
-import { X, Cloud, LogOut } from 'lucide-vue-next'
+import { X } from 'lucide-vue-next'
 
 const props = defineProps<{
   modelValue: boolean
   syncRoomId: string
   isSyncing: boolean
-  sharexAction: 'pmp' | 'pills' | 'vaccine' | 'medcert'
 }>()
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
   'update:syncRoomId': [value: string]
-  'update:sharexAction': [value: 'pmp' | 'pills' | 'vaccine' | 'medcert']
   connect: [roomId: string]
   disconnect: []
   createRoom: []
-  downloadConfig: []
 }>()
 </script>
 
@@ -54,28 +51,6 @@ const emit = defineEmits<{
           >
             Подключиться
           </button>
-
-          <div v-if="isSyncing" class="space-y-2 pt-2 border-t border-white/10">
-            <label class="text-xs font-bold text-slate-500 uppercase">Настройка ShareX</label>
-            <select 
-              :value="sharexAction"
-              @change="emit('update:sharexAction', ($event.target as HTMLSelectElement).value as any)"
-              class="w-full bg-[#0B1120] text-indigo-300 rounded-lg p-2 text-sm font-bold border border-indigo-500/20 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            >
-              <option value="pmp">🚑 ПМП (First Aid)</option>
-              <option value="pills">💊 Таблетки (City)</option>
-              <option value="vaccine">💉 Вакцинация (City)</option>
-              <option value="medcert">📄 Мед. справки (City)</option>
-            </select>
-            
-            <button 
-              @click="emit('downloadConfig')" 
-              class="w-full py-3 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-xl font-bold transition-colors flex items-center justify-center gap-2"
-            >
-              <Cloud class="w-4 h-4" />
-              Скачать конфиг
-            </button>
-          </div>
 
           <div class="relative py-2">
             <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-white/10"></div></div>

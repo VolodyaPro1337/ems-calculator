@@ -7,7 +7,6 @@ import { useSync } from '@/composables/useSync'
 import { useHistory } from '@/composables/useHistory'
 import { useShift } from '@/composables/useShift'
 import { useClipboard } from '@/composables/useClipboard'
-import { useShareX } from '@/composables/useShareX'
 
 // Components
 import AppHeader from '@/components/layout/AppHeader.vue'
@@ -38,7 +37,6 @@ const sync = useSync(categories, saveState)
 const { history, showHistory, loadHistory, addEntry, clearHistory } = useHistory()
 const { currentShift, shiftLabel } = useShift()
 const { showCopyFeedback, copyReport } = useClipboard()
-const { sharexAction, downloadShareXConfig } = useShareX(sync.syncRoomId)
 
 // Reset with history save
 const handleReset = () => {
@@ -123,13 +121,10 @@ onMounted(() => {
       v-model="sync.showSyncModal.value"
       :sync-room-id="sync.syncRoomId.value"
       :is-syncing="sync.isSyncing.value"
-      :sharex-action="sharexAction"
       @update:sync-room-id="sync.syncRoomId.value = $event"
-      @update:sharex-action="sharexAction = $event"
       @connect="sync.connectToSync"
       @disconnect="sync.disconnectSync"
       @create-room="sync.createNewRoom"
-      @download-config="downloadShareXConfig"
     />
 
     <HistorySidebar
@@ -141,6 +136,27 @@ onMounted(() => {
     <GuideSidebar
       v-model="showGuide"
     />
+
+    <!-- Credits Block -->
+    <div class="fixed bottom-4 right-4 opacity-30 hover:opacity-90 transition-opacity duration-500 z-10">
+      <div class="bg-[#0B1120]/80 backdrop-blur-sm rounded-xl border border-white/5 p-3 space-y-1.5">
+        <!-- Bill Bob - главный -->
+        <div class="flex items-center justify-between gap-4 group">
+          <span class="text-[10px] font-bold text-amber-400 group-hover:animate-pulse">Bill Bob</span>
+          <span class="text-[9px] font-mono text-amber-400/70">#213389</span>
+        </div>
+        <!-- Sara Sowiet - второй -->
+        <div class="flex items-center justify-between gap-4">
+          <span class="text-[9px] font-medium text-slate-400">Sara Sowiet</span>
+          <span class="text-[8px] font-mono text-slate-500">#191913</span>
+        </div>
+        <!-- Stepan Soul - минимум -->
+        <div class="flex items-center justify-between gap-4">
+          <span class="text-[8px] text-slate-600">Stepan Soul</span>
+          <span class="text-[7px] font-mono text-slate-700">#212386</span>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
